@@ -1,4 +1,13 @@
 <script setup lang="ts">
+import { resolveJourneyMedia, type JourneyMediaSet } from '~/data/journeyMedia'
+
+const props = defineProps<{
+  mediaSet?: JourneyMediaSet
+}>()
+
+const appConfig = useAppConfig()
+const media = resolveJourneyMedia(props.mediaSet ?? appConfig.journeyMedia)
+
 interface Parada {
   id: string
   lugar: string
@@ -14,48 +23,48 @@ const paradas: Parada[] = [
     lugar: 'La recepción',
     title: 'Bienvenida a tu nuevo espacio de trabajo',
     text: 'Recepción 24/7, registro de visitantes sin filas y café de barra incluido desde el primer minuto.',
-    clip: '/video/paseo-1.mp4',
-    poster: '/img/paseo-1.jpg',
+    clip: `${media.videoBase}/paseo-1.mp4`,
+    poster: `${media.posterBase}/paseo-1.jpg`,
   },
   {
     id: 'coworking',
     lugar: 'Coworking flexible',
     title: 'Hot desk y escritorios por día',
     text: 'Escritorios ergonómicos, WiFi dedicado y comunidad que crece cada semana. Reserva por hora o por día.',
-    clip: '/video/paseo-2.mp4',
-    poster: '/img/paseo-2.jpg',
+    clip: `${media.videoBase}/paseo-2.mp4`,
+    poster: `${media.posterBase}/paseo-2.jpg`,
   },
   {
     id: 'salas',
     lugar: 'Salas de juntas',
     title: 'Juntas que se ven y se sienten premium',
     text: 'Pantalla 4K, videoconferencia y mobiliario modular. Reservables por hora o día completo.',
-    clip: '/video/paseo-3.mp4',
-    poster: '/img/paseo-3.jpg',
+    clip: `${media.videoBase}/paseo-3.mp4`,
+    poster: `${media.posterBase}/paseo-3.jpg`,
   },
   {
     id: 'auditorio',
     lugar: 'Auditorio Metepec',
     title: 'Escenarios para lo que sigue',
     text: 'Butacas para 60 personas, iluminación LED y sonido profesional. Pitch days, workshops y conferencias.',
-    clip: '/video/paseo-4.mp4',
-    poster: '/img/paseo-4.jpg',
+    clip: `${media.videoBase}/paseo-4.mp4`,
+    poster: `${media.posterBase}/paseo-4.jpg`,
   },
   {
     id: 'cafe',
     lugar: 'Café de barra',
     title: 'El punto de encuentro de la comunidad',
     text: 'Café de especialidad, snacks y conversaciones que terminan en clientes. Incluido en todos los espacios.',
-    clip: '/video/paseo-5.mp4',
-    poster: '/img/paseo-5.jpg',
+    clip: `${media.videoBase}/paseo-5.mp4`,
+    poster: `${media.posterBase}/paseo-5.jpg`,
   },
   {
     id: 'terraza',
     lugar: 'Terraza y comunidad',
     title: 'El after office que tu equipo merecía',
     text: 'Terraza con vista al boulevard, café de grano y networking mensual entre empresas de la plaza.',
-    clip: '/video/paseo-6.mp4',
-    poster: '/img/paseo-6.jpg',
+    clip: `${media.videoBase}/paseo-6.mp4`,
+    poster: `${media.posterBase}/paseo-6.jpg`,
   },
 ]
 
