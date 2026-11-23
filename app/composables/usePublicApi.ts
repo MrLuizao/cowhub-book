@@ -31,7 +31,7 @@ interface TourResponse {
 /// para que las páginas caigan al modo demo (datos locales).
 export function usePublicApi() {
   const config = useRuntimeConfig()
-  const base = (config.public.apiBase as string) || ''
+  const base = ((config.public.apiBase as string) || '').replace(/\/+$/, '')
 
   async function listSpaces(): Promise<CoworkSpace[] | null> {
     try {
