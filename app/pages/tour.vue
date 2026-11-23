@@ -45,12 +45,13 @@ async function submit() {
     })
     if (res?.tour?.folio) {
       folio.value = res.tour.folio
+      submitted.value = true
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     } else {
-      // API no disponible → folio demo local
-      folio.value = 'TOUR-' + Math.random().toString(36).slice(2, 8).toUpperCase()
+      submitError.value = 'No se pudo conectar con el servidor para registrar el tour'
     }
-    submitted.value = true
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+  } catch (err: unknown) {
+    submitError.value = 'Error al procesar la solicitud con el servidor'
   } finally {
     submitting.value = false
   }

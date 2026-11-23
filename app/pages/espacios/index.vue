@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import { spaces as fallbackSpaces } from '~/data/spaces'
-
 useHead({ title: 'COW-HUB · Reservaciones' })
 
 const api = usePublicApi()
 const { data: remote } = await useAsyncData('public-spaces', () => api.listSpaces())
-const spaces = computed(() => remote.value ?? fallbackSpaces)
+const spaces = computed(() => remote.value ?? [])
 
 const featured = computed(() => spaces.value.filter((s) => s.featured))
 const filters = [

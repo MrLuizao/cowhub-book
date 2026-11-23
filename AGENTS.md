@@ -72,7 +72,12 @@ tour (`/tour`). Repos hermanos: `cowhub-b2b` (consola + API), `cowhub-app`
 - `runtimeConfig.public.apiBase` (env `NUXT_PUBLIC_API_BASE`, default
   `http://localhost:3000`) apunta a la API pública de cowhub-b2b.
 - `app/composables/usePublicApi.ts` — cliente con **fallback a datos
-  locales**: si la API no responde, el sitio sigue en modo demo.
+  locales**: si la API no responde o devuelve un array vacío, el sitio sigue
+  usando los datos locales protegidos.
+- **Fuente de verdad inicial (Book ➔ B2B)**: Los datos de este proyecto
+  (espacios, fotos, precios, amenidades, membresías) son la fuente de verdad
+  inicial. Se sincronizan hacia Firestore en el B2B mediante su script
+  `scripts/sync-from-book.mjs`.
 - Endpoints consumidos: `GET /api/public/spaces`,
   `GET /api/public/spaces/:id?date=`, `POST /api/public/bookings`,
   `POST /api/public/tours`.

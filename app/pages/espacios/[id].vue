@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { spaces as fallbackSpaces, categoryLabels } from '~/data/spaces'
+import { categoryLabels } from '~/data/spaces'
 
 const route = useRoute()
 const api = usePublicApi()
 
-const { data: remoteSpaces } = await useAsyncData('public-spaces', () => api.listSpaces())
-const allSpaces = computed(() => remoteSpaces.value ?? fallbackSpaces)
-const space = computed(() => allSpaces.value.find((s) => s.id === route.params.id))
+const { data: allSpaces } = await useAsyncData('public-spaces', () => api.listSpaces())
+const space = computed(() => allSpaces.value?.find((s) => s.id === route.params.id))
 
 if (!space.value) {
   throw createError({ statusCode: 404, statusMessage: 'Espacio no encontrado' })
@@ -51,17 +50,14 @@ async function loadAvailability(d: string) {
 }
 watch(date, loadAvailability, { immediate: true })
 
-// Slots ocupados: reales si la API responde; mock determinista si no.
+// Slots ocupados en tiempo real desde el servidor.
 function occupied(h: number) {
-  if (bookedSlots.value) {
-    return bookedSlots.value.some((b) =>
-      b.mode === 'day'
-        ? true
-        : b.startHour != null && b.endHour != null && h >= b.startHour && h < b.endHour,
-    )
-  }
-  const seed = (space.value!.id.charCodeAt(0) + h * 7) % 5
-  return seed === 0 || seed === 3
+  if (!bookedSlots.value) return false
+  return bookedSlots.value.some((b) =>
+    b.mode === 'day'
+      ? true
+      : b.startHour != null && b.endHour != null && h >= b.startHour && h < b.endHour,
+  )
 }
 const hours = Array.from({ length: 14 }, (_, i) => i + 7) // 7:00–20:00
 const endHour = computed(() => startHour.value + duration.value)
@@ -90,15 +86,13 @@ async function confirm() {
     })
     if (res && 'booking' in res) {
       bookingRef.value = res.booking.folio
-    } else if (res && 'error' in res) {
-      bookingError.value = res.error
-      return
+      confirmed.value = true
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     } else {
-      // API no disponible → folio demo local
-      bookingRef.value = 'CH-' + Math.random().toString(36).slice(2, 8).toUpperCase()
+      bookingError.value = res && 'error' in res ? res.error : 'Error al conectar con el servidor de reservas'
     }
-    confirmed.value = true
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+  } catch (err: unknown) {
+    bookingError.value = 'Ocurrió un error al procesar tu reserva'
   } finally {
     bookingPending.value = false
   }
