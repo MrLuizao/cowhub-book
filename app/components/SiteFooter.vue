@@ -66,12 +66,23 @@ const year = new Date().getFullYear()
     </div>
     <div class="border-t border-white/10">
       <div
-        class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-5 py-6 text-[11px] uppercase tracking-[0.2em] text-cream-100/40 sm:flex-row lg:px-8">
-        <p>© {{ year }} COW-HUB</p>
-        <div class="flex gap-4">
-          <a href="#" target="_blank" rel="noopener">Aviso de privacidad</a>
-          |
-          <a href="#" target="_blank" rel="noopener">Terminos y condiciones</a>
+        class="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 px-5 py-8 text-[11px] uppercase tracking-[0.2em] text-cream-100/40 sm:flex-row sm:items-end lg:px-8">
+        <div class="flex w-full flex-col items-end text-right gap-4 sm:w-auto sm:items-start sm:text-left sm:gap-3">
+          <p class="text-cream-100/60">© {{ year }} COW-HUB</p>
+          <div class="flex flex-col items-end gap-4 sm:flex-row sm:items-center sm:gap-2">
+            <a href="#" target="_blank" rel="noopener" class="transition hover:text-cream-100/80">Aviso de
+              privacidad</a>
+            <span class="hidden sm:inline">|</span>
+            <a href="#" target="_blank" rel="noopener" class="transition hover:text-cream-100/80">Términos y
+              condiciones</a>
+          </div>
+        </div>
+        <div class="flex flex-col items-center self-center sm:items-end sm:self-auto gap-2">
+          <a href="https://foundry-landing-pi.vercel.app/" target="_blank" rel="noopener noreferrer"
+            class="inline-flex cursor-pointer items-center rounded-xl bg-white/[0.04] transition duration-300 hover:border-[#ff6b00]/70 hover:bg-white/[0.08]">
+            <img src="/brand/fundere-original-dark.png" alt="FUNDERE Software Studio"
+              class="h-10 w-auto object-contain mix-blend-screen transition duration-300 group-hover:scale-105 sm:h-12" />
+          </a>
         </div>
       </div>
     </div>
