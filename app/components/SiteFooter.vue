@@ -1,19 +1,7 @@
-<script setup lang="ts">
-const year = new Date().getFullYear()
-</script>
-
 <template>
   <footer class="bg-ink-900 text-cream-100">
     <div class="mx-auto grid max-w-7xl gap-12 px-5 py-16 sm:grid-cols-2 lg:grid-cols-4 lg:px-8">
-      <div>
-        <p class="font-display text-2xl font-bold">
-          COW<span class="text-bronze-300">-</span>HUB
-        </p>
-        <p class="mt-3 max-w-xs text-sm leading-relaxed text-cream-100/60">
-          Coworking en el corazón de Metepec. Oficinas, coworking y
-          espacios reservables para el networking.
-        </p>
-      </div>
+
       <div>
         <p class="text-[11px] font-semibold uppercase tracking-[0.25em] text-bronze-300">Espacios</p>
         <ul class="mt-4 space-y-3 text-sm text-cream-100/70">
@@ -63,21 +51,29 @@ const year = new Date().getFullYear()
           <li class="pt-2 text-cream-100/40">Lun–Vie 7:00–21:00 · Sáb 9:00–15:00</li>
         </ul>
       </div>
+      <div>
+        <p class="text-[11px] font-semibold uppercase tracking-[0.25em] text-bronze-300">Legal</p>
+        <ul class="mt-4 space-y-3 text-sm text-cream-100/70">
+          <li>
+            <a href="#" target="_blank" rel="noopener" class="link-line">Aviso de privacidad</a>
+          </li>
+          <li>
+            <a href="#" target="_blank" rel="noopener" class="link-line">Términos y condiciones</a>
+          </li>
+        </ul>
+      </div>
     </div>
     <div class="border-t border-white/10">
       <div
-        class="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 px-5 py-8 text-[11px] uppercase tracking-[0.2em] text-cream-100/40 sm:flex-row sm:items-end lg:px-8">
-        <div class="flex w-full flex-col items-end text-right gap-4 sm:w-auto sm:items-start sm:text-left sm:gap-3">
-          <p class="text-cream-100/60">© {{ year }} COW-HUB</p>
-          <div class="flex flex-col items-end gap-4 sm:flex-row sm:items-center sm:gap-2">
-            <a href="#" target="_blank" rel="noopener" class="transition hover:text-cream-100/80">Aviso de
-              privacidad</a>
-            <span class="hidden sm:inline">|</span>
-            <a href="#" target="_blank" rel="noopener" class="transition hover:text-cream-100/80">Términos y
-              condiciones</a>
-          </div>
+        class="mx-auto flex max-w-7xl flex-col items-start justify-between gap-8 px-5 py-10 sm:flex-row sm:items-center lg:px-8">
+        <div>
+          <BrandLogo size="md" />
+          <p class="mt-1 max-w-md text-xs leading-relaxed text-cream-100/40">
+            Business Center en el corazón de Metepec. <br />
+            Oficinas privadas, salas de juntas y espacios flexibles listos para tu equipo.
+          </p>
         </div>
-        <div class="flex flex-col items-center self-center sm:items-end sm:self-auto gap-2">
+        <div class="flex flex-col items-center self-center sm:items-end sm:self-auto">
           <a href="https://foundry-landing-pi.vercel.app/" target="_blank" rel="noopener noreferrer"
             class="inline-flex cursor-pointer items-center rounded-xl bg-white/[0.04] transition duration-300 hover:border-[#ff6b00]/70 hover:bg-white/[0.08]">
             <img src="/brand/fundere-original-dark.png" alt="FUNDERE Software Studio"

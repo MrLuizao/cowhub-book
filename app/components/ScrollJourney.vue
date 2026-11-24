@@ -21,48 +21,48 @@ const paradas: Parada[] = [
   {
     id: 'recepcion',
     lugar: 'La recepción',
-    title: 'Bienvenida a tu nuevo espacio de trabajo',
-    text: 'Recepción 24/7, registro de visitantes sin filas y café de barra incluido desde el primer minuto.',
+    title: 'Tu primera impresión, resuelta.',
+    text: 'Recepción ejecutiva, acceso ágil para tus visitas y café de barra listo desde que cruzas la puerta.',
     clip: `${media.videoBase}/paseo-1.mp4`,
     poster: `${media.posterBase}/paseo-1.jpg`,
   },
   {
     id: 'coworking',
     lugar: 'Coworking flexible',
-    title: 'Hot desk y escritorios por día',
-    text: 'Escritorios ergonómicos, WiFi dedicado y comunidad que crece cada semana. Reserva por hora o por día.',
+    title: 'Trabaja a tu ritmo, sin distracciones.',
+    text: 'Escritorios ergonómicos, internet dedicado y un entorno profesional para avanzar desde el primer día. Reserva por hora o por día.',
     clip: `${media.videoBase}/paseo-2.mp4`,
     poster: `${media.posterBase}/paseo-2.jpg`,
   },
   {
     id: 'salas',
     lugar: 'Salas de juntas',
-    title: 'Juntas que se ven y se sienten premium',
-    text: 'Pantalla 4K, videoconferencia y mobiliario modular. Reservables por hora o día completo.',
+    title: 'Reuniones a la altura de tus clientes.',
+    text: 'Pantallas 4K, audio nítido y mobiliario configurable para presentaciones o juntas de consejo.',
     clip: `${media.videoBase}/paseo-3.mp4`,
     poster: `${media.posterBase}/paseo-3.jpg`,
   },
   {
     id: 'auditorio',
     lugar: 'Auditorio Metepec',
-    title: 'Escenarios para lo que sigue',
-    text: 'Butacas para 60 personas, iluminación LED y sonido profesional. Pitch days, workshops y conferencias.',
+    title: 'Un escenario listo para tu próximo evento.',
+    text: 'Capacidad para 60 personas, iluminación profesional y acústica cuidada para lanzamientos, talleres y conferencias.',
     clip: `${media.videoBase}/paseo-4.mp4`,
     poster: `${media.posterBase}/paseo-4.jpg`,
   },
   {
     id: 'cafe',
     lugar: 'Café de barra',
-    title: 'El punto de encuentro de la comunidad',
-    text: 'Café de especialidad, snacks y conversaciones que terminan en clientes. Incluido en todos los espacios.',
+    title: 'Pausa, café y buenas conversaciones.',
+    text: 'Barra de café de especialidad y áreas lounge pensadas para desconectar cinco minutos o cerrar un trato.',
     clip: `${media.videoBase}/paseo-5.mp4`,
     poster: `${media.posterBase}/paseo-5.jpg`,
   },
   {
     id: 'terraza',
     lugar: 'Terraza y comunidad',
-    title: 'El after office que tu equipo merecía',
-    text: 'Terraza con vista al boulevard, café de grano y networking mensual entre empresas de la plaza.',
+    title: 'El punto de encuentro de tu equipo.',
+    text: 'Terraza abierta sobre el boulevard para eventos privados, networking y cierres de semana.',
     clip: `${media.videoBase}/paseo-6.mp4`,
     poster: `${media.posterBase}/paseo-6.jpg`,
   },
@@ -101,7 +101,12 @@ let current = -1
 let active = 0
 let shown = -1
 let time = 0
+let isMobile = false
+let lastWidth = 0
+let unlocked = false
 const ready: boolean[] = []
+const loading: boolean[] = []
+const blobUrls: string[] = []
 const reduceMotion =
   typeof window !== 'undefined' &&
   window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -123,8 +128,122 @@ const sync = () => {
   const clip = clips[active]
   if (!clip || !ready[active]) return
   if (clip.seeking) return
-  if (Math.abs(clip.currentTime - time) > 0.01) clip.currentTime = time
-  else show()
+  const threshold = isMobile ? 0.04 : 0.01
+  if (Math.abs(clip.currentTime - time) > threshold) {
+    try {
+      clip.currentTime = time
+    } catch {
+      // Safari can throw InvalidStateError if metadata isn't ready yet
+    }
+  } else {
+    show()
+  }
+}
+
+const primeClip = async (clip: HTMLVideoElement) => {
+  clip.muted = true
+  clip.playsInline = true
+  try {
+    await clip.play()
+    clip.pause()
+    unlocked = true
+  } catch {
+    // Autoplay blocked (e.g. iOS Low Power Mode) — will unlock on first touch
+  }
+}
+
+const loadMobileClip = async (i: number) => {
+  const clip = clips[i]
+  if (!clip || ready[i] || loading[i]) return
+  const src = clip.dataset.src ?? ''
+  if (!src) return
+
+  loading[i] = true
+  clip.muted = true
+  clip.playsInline = true
+  clip.preload = 'auto'
+  if (clip.getAttribute('src') !== src) {
+    clip.src = src
+    clip.load()
+  }
+
+  const loaded = await new Promise<boolean>((resolve) => {
+    if (clip.readyState >= 2) return resolve(true)
+    let settled = false
+    const done = (ok: boolean) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      clip.removeEventListener('loadeddata', onReady)
+      clip.removeEventListener('canplay', onReady)
+      clip.removeEventListener('loadedmetadata', onMeta)
+      clip.removeEventListener('error', onError)
+      resolve(ok)
+    }
+    const onReady = () => done(true)
+    const onMeta = () => {
+      // iOS sometimes stops at HAVE_METADATA until play() is attempted
+      primeClip(clip).then(() => {
+        if (clip.readyState >= 2) done(true)
+      })
+    }
+    const onError = () => done(false)
+    const timer = window.setTimeout(() => done(clip.readyState >= 1), 6000)
+
+    clip.addEventListener('loadeddata', onReady)
+    clip.addEventListener('canplay', onReady)
+    clip.addEventListener('loadedmetadata', onMeta)
+    clip.addEventListener('error', onError)
+  })
+
+  loading[i] = false
+  if (loaded && clip.getAttribute('src') === src) {
+    await primeClip(clip)
+    ready[i] = true
+    if (i === active) render()
+  }
+}
+
+const updateMobileWindow = () => {
+  if (!isMobile || !clips.length) return
+  // Mantener solo el clip activo y sus vecinos inmediatos para no saturar decodificadores en iOS.
+  const keep = new Set([active, Math.min(last, active + 1), Math.max(0, active - 1)])
+  clips.forEach((clip, i) => {
+    if (!keep.has(i) && (ready[i] || clip.getAttribute('src'))) {
+      ready[i] = false
+      loading[i] = false
+      clip.classList.remove('is-shown')
+      if (shown === i) shown = -1
+      clip.removeAttribute('src')
+      clip.load()
+    }
+  })
+  // Priorizar el clip actual y luego el siguiente.
+  loadMobileClip(active).then(() => {
+    if (active + 1 <= last) loadMobileClip(active + 1)
+    if (active - 1 >= 0) loadMobileClip(active - 1)
+  })
+}
+
+const onFirstInteraction = () => {
+  if (unlocked) {
+    window.removeEventListener('touchstart', onFirstInteraction)
+    window.removeEventListener('pointerdown', onFirstInteraction)
+    return
+  }
+  const clip = clips[active]
+  if (clip && clip.getAttribute('src')) {
+    primeClip(clip).then(() => {
+      if (unlocked) {
+        window.removeEventListener('touchstart', onFirstInteraction)
+        window.removeEventListener('pointerdown', onFirstInteraction)
+      }
+      if (clip.readyState >= 1) {
+        ready[active] = true
+        render()
+      }
+    })
+  }
 }
 
 const render = () => {
@@ -142,23 +261,34 @@ const render = () => {
   })
 
   if (!clips.length) return
-  active = Math.min(clips.length - 1, Math.floor(w))
+  const nextActive = Math.min(clips.length - 1, Math.floor(w))
+  const activeChanged = nextActive !== active
+  active = nextActive
+  if (activeChanged && isMobile) updateMobileWindow()
+
   const { duration } = clips[active]
-  if (ready[active] && Number.isFinite(duration)) {
-    time = Math.min((w - active) * duration, duration - 0.05)
+  if (ready[active] && Number.isFinite(duration) && duration > 0) {
+    time = Math.min(Math.max(0, (w - active) * duration), duration - 0.05)
   }
   sync()
 }
 
 const measure = () => {
   if (!worldEl.value || !stageEl.value) return
+  lastWidth = window.innerWidth
   const sy = window.scrollY
-  const vh = window.innerHeight
+  const vh = stageEl.value.offsetHeight || window.innerHeight
   const worldTop = worldEl.value.getBoundingClientRect().top + sy
   const worldBottom = worldTop + worldEl.value.offsetHeight
   marks = stopEls.value.map((el) => el.getBoundingClientRect().top + sy)
   endY = worldBottom - vh
   render()
+}
+
+const onResize = () => {
+  // En móvil, ocultar/mostrar la barra de direcciones dispara resize solo en alto.
+  if (isMobile && Math.abs(window.innerWidth - lastWidth) < 2) return
+  measure()
 }
 
 let raf = 0
@@ -167,8 +297,8 @@ const onScroll = () => {
   raf = requestAnimationFrame(render)
 }
 
-// Carga los clips de uno en uno, priorizando el más cercano al scroll actual.
-const loadQueue = async () => {
+// Desktop: precarga los clips de uno en uno en memoria, priorizando el más cercano al scroll actual.
+const loadDesktopQueue = async () => {
   const distance = (i: number) => {
     if (i === active) return -1
     if (i > w) return i - w
@@ -184,17 +314,24 @@ const loadQueue = async () => {
     try {
       const res = await fetch(src)
       if (!res.ok) throw new Error(res.statusText)
-      clip.src = URL.createObjectURL(await res.blob())
+      const objectUrl = URL.createObjectURL(await res.blob())
+      blobUrls.push(objectUrl)
+      clip.src = objectUrl
     } catch {
       clip.src = src
     }
     const loaded = await new Promise<boolean>((resolve) => {
-      clip.addEventListener('loadeddata', () => resolve(true), { once: true })
-      clip.addEventListener('error', () => resolve(false), { once: true })
+      if (clip.readyState >= 2) return resolve(true)
+      const timer = window.setTimeout(() => resolve(clip.readyState >= 1), 10000)
+      const finish = (ok: boolean) => {
+        clearTimeout(timer)
+        resolve(ok)
+      }
+      clip.addEventListener('loadeddata', () => finish(true), { once: true })
+      clip.addEventListener('error', () => finish(false), { once: true })
     })
     if (loaded) {
-      await clip.play().catch(() => { })
-      clip.pause()
+      await primeClip(clip)
       ready[i] = true
       render()
     }
@@ -202,8 +339,14 @@ const loadQueue = async () => {
 }
 
 onMounted(() => {
+  isMobile =
+    window.matchMedia('(pointer: coarse)').matches ||
+    /iP(ad|hone|od)|Android/i.test(navigator.userAgent)
+
   clips = Array.from(stageEl.value?.querySelectorAll<HTMLVideoElement>('[data-clip]') ?? [])
   clips.forEach((clip, i) => {
+    clip.muted = true
+    clip.playsInline = true
     clip.addEventListener('seeked', () => {
       if (i !== active) return
       show()
@@ -212,19 +355,34 @@ onMounted(() => {
   })
   measure()
   window.addEventListener('scroll', onScroll, { passive: true })
-  window.addEventListener('resize', measure)
+  window.addEventListener('resize', onResize)
+  window.addEventListener('orientationchange', measure)
+  if (isMobile) {
+    window.addEventListener('touchstart', onFirstInteraction, { passive: true })
+    window.addEventListener('pointerdown', onFirstInteraction, { passive: true })
+  }
+
   const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection
     ?.saveData
   if (!reduceMotion && !saveData && clips.length) {
-    if (document.readyState === 'complete') loadQueue()
-    else window.addEventListener('load', loadQueue, { once: true })
+    if (isMobile) {
+      updateMobileWindow()
+    } else if (document.readyState === 'complete') {
+      loadDesktopQueue()
+    } else {
+      window.addEventListener('load', loadDesktopQueue, { once: true })
+    }
   }
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('scroll', onScroll)
-  window.removeEventListener('resize', measure)
+  window.removeEventListener('resize', onResize)
+  window.removeEventListener('orientationchange', measure)
+  window.removeEventListener('touchstart', onFirstInteraction)
+  window.removeEventListener('pointerdown', onFirstInteraction)
   cancelAnimationFrame(raf)
+  blobUrls.forEach((url) => URL.revokeObjectURL(url))
 })
 </script>
 
@@ -240,22 +398,23 @@ onBeforeUnmount(() => {
         </div>
         <div class="clips absolute inset-0">
           <video v-for="p in paradas" :key="'clip-' + p.id" :data-clip="p.id" :data-src="p.clip" muted playsinline
-            preload="none" disablepictureinpicture disableremoteplayback tabindex="-1"
+            webkit-playsinline preload="none" disablepictureinpicture disableremoteplayback tabindex="-1"
             class="clip absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-500" />
         </div>
       </div>
 
       <!-- Velos para leer el texto -->
-      <div aria-hidden="true" class="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-ink-900/60 to-transparent" />
       <div aria-hidden="true"
-        class="absolute inset-0 bg-gradient-to-t from-ink-900 from-15% via-ink-900/50 via-50% to-transparent to-80% lg:bg-gradient-to-r lg:from-ink-900/90 lg:via-ink-900/40 lg:via-35% lg:to-transparent lg:to-65%" />
+        class="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-ink-900/60 to-transparent lg:h-40" />
+      <div aria-hidden="true"
+        class="absolute inset-0 bg-gradient-to-t from-ink-900/95 from-10% via-ink-900/35 via-42% to-transparent to-72% lg:bg-gradient-to-r lg:from-ink-900/90 lg:via-ink-900/40 lg:via-35% lg:to-transparent lg:to-65%" />
       <div aria-hidden="true"
         class="absolute inset-x-0 bottom-0 hidden h-1/2 bg-gradient-to-t from-ink-900/80 to-transparent lg:block" />
 
       <p ref="hintEl" aria-hidden="true"
-        class="absolute bottom-8 right-8 hidden items-center gap-3 text-[11px] tracking-[0.25em] text-cream-50/70 uppercase lg:flex">
+        class="absolute bottom-4 right-5 flex items-center gap-2.5 text-[10px] tracking-[0.25em] text-cream-50/75 uppercase lg:bottom-8 lg:right-8 lg:gap-3 lg:text-[11px]">
         Desliza para recorrer
-        <span class="hint-line relative block h-8 w-px overflow-hidden bg-cream-50/20">
+        <span class="hint-line relative block h-5 w-px overflow-hidden bg-cream-50/20 lg:h-8">
           <span class="absolute inset-x-0 top-0 h-1/2 animate-[hint_1.6s_ease-in-out_infinite] bg-bronze-400" />
         </span>
       </p>
@@ -274,12 +433,12 @@ onBeforeUnmount(() => {
               <span class="tabular-nums">{{ String(i + 1).padStart(2, '0') }} / {{ String(n).padStart(2, '0') }}</span>
             </p>
             <h3 class="mt-4 max-w-3xl font-display text-4xl font-semibold leading-tight text-cream-50 lg:text-6xl">
-              Salas de juntas, auditorio y coworking<br />
-              <em class="font-normal italic text-bronze-300">de estándar hotelero</em><br />
+              Oficinas, cabinas y <br />
+              <em class="font-normal italic text-bronze-300">las mejores amenidades</em><br />
               en el corazón de Metepec.
             </h3>
             <p class="mt-4 max-w-md text-[15px] leading-relaxed text-cream-50/75 lg:text-base">
-              Reserva en segundos, llega y trabaja.
+              Elige tu espacio, reserva en línea y llega directo a trabajar.
             </p>
             <!-- <div class="mt-8 w-full max-w-4xl">
               <BookingWidget @search="onSearch" />

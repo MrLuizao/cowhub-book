@@ -9,7 +9,7 @@ const mxn = (n: number) => '$' + n.toLocaleString('es-MX')
 <template>
   <NuxtLink
     :to="`/espacios/${space.id}`"
-    class="group block overflow-hidden rounded-2xl bg-white transition duration-500 hover:-translate-y-1 hover:shadow-[0_30px_60px_-30px_rgba(23,20,15,0.4)]"
+    class="group block overflow-hidden rounded-2xl border border-cream-50/10 bg-ink-800/70 transition duration-500 hover:-translate-y-1 hover:border-bronze-500/40"
   >
     <div class="relative aspect-[4/3] overflow-hidden">
       <img
@@ -23,15 +23,15 @@ const mxn = (n: number) => '$' + n.toLocaleString('es-MX')
       </span>
     </div>
     <div class="p-6">
-      <p class="text-[11px] uppercase tracking-[0.2em] text-bronze-600">{{ space.tagline }}</p>
-      <h3 class="mt-2 font-display text-2xl font-semibold text-ink-900">{{ space.name }}</h3>
+      <p class="text-[11px] uppercase tracking-[0.2em] text-bronze-400">{{ space.tagline }}</p>
+      <h3 class="mt-2 font-display text-2xl font-semibold text-cream-50">{{ space.name }}</h3>
       <div class="mt-4 flex items-end justify-between">
-        <p class="text-sm text-ink-500">
-          Hasta <span class="font-semibold text-ink-900">{{ space.capacity }}</span> personas
+        <p class="text-sm text-cream-50/60">
+          Hasta <span class="font-semibold text-cream-50">{{ space.capacity }}</span> personas
         </p>
         <p class="text-sm">
-          <span class="font-display text-xl font-semibold text-ink-900">{{ mxn(space.pricePerHour) }}</span>
-          <span class="text-ink-400">/hora</span>
+          <span class="font-display text-xl font-semibold text-bronze-300">{{ mxn(space.pricePerHour) }}</span>
+          <span class="text-cream-50/50">/hora</span>
         </p>
       </div>
     </div>

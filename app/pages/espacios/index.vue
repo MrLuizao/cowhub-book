@@ -30,8 +30,8 @@ const mxn = (n: number) => '$' + n.toLocaleString('es-MX')
 <template>
   <div>
     <PageHero eyebrow="Reservaciones" image="https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=1600&q=80"
-      description="Salas de juntas, auditorio, terraza y escritorios flexibles. Reserva por hora o por día, con café de barra y comunidad incluida.">
-      Espacios que se sienten como hotel,<br /><em class="text-bronze-300">no como oficina prestada.</em>
+      description="Salas de juntas, auditorio y escritorios listos para operar. Elige horario, confirma en línea y llega directo a tu espacio.">
+      Espacios pensados para recibir clientes,<br /><em class="text-bronze-300">no improvisados.</em>
     </PageHero>
 
     <div class="mx-auto max-w-7xl px-5 pb-24 lg:px-8">

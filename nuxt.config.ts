@@ -10,22 +10,27 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      /// API pública del B2B (cowhub-b2b). Vacío = modo demo local.
-      apiBase: process.env.NUXT_PUBLIC_API_BASE ?? 'http://localhost:3000',
+      /// API pública del B2B (cowhub-b2b).
+      apiBase:
+        process.env.NUXT_PUBLIC_API_BASE ??
+        (process.env.NODE_ENV === 'production'
+          ? 'https://cowhub-b2b.vercel.app'
+          : 'http://localhost:3000'),
     },
   },
   app: {
     head: {
       title: 'COW-HUB',
       meta: [
-        { name: 'description', content: 'Reserva escritorios, salas de juntas y espacios de coworking en Metepec. Comunidad, perks y servicios en un solo lugar.' },
+        { name: 'description', content: 'Business Center en Metepec: oficinas privadas, salas de juntas, auditorio y escritorios flexibles listos para operar.' },
       ],
       link: [
+        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
         {
           rel: 'stylesheet',
-          href: 'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap',
+          href: 'https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=Marcellus&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap',
         },
       ],
     },

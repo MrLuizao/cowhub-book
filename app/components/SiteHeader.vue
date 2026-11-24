@@ -23,30 +23,25 @@ const links = [
 <template>
   <header class="fixed inset-x-0 top-0 z-50 transition-all duration-500"
     :class="scrolled || open ? 'bg-ink-900/85 backdrop-blur-md border-b border-cream-50/10' : 'bg-transparent'">
-    <div class="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 lg:px-8">
-      <NuxtLink to="/" class="flex items-baseline gap-1">
-        <span class="font-display text-2xl font-bold tracking-tight text-cream-50">
-          COW<span class="text-bronze-400">-</span>HUB
-        </span>
-        <!-- <span class="hidden text-[10px] font-semibold uppercase tracking-[0.3em] text-cream-50/50 sm:inline">
-          Coworking
-        </span> -->
+    <div class="mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-5 lg:gap-6 lg:px-8">
+      <NuxtLink to="/" aria-label="COW-HUB Inicio" class="flex shrink-0 items-center">
+        <BrandLogo size="md" />
       </NuxtLink>
 
-      <div class="flex items-center gap-9">
-        <nav class="hidden items-center gap-9 lg:flex">
+      <div class="flex items-center gap-5 xl:gap-8">
+        <nav class="hidden items-center gap-5 lg:flex xl:gap-8">
           <NuxtLink v-for="l in links" :key="l.label" :to="l.to"
-            class="link-line text-[13px] font-medium uppercase tracking-[0.14em] text-cream-50/70 transition hover:text-cream-50">
+            class="link-line whitespace-nowrap text-[12px] font-medium uppercase tracking-[0.14em] text-cream-50/70 transition hover:text-cream-50 xl:text-[13px]">
             {{ l.label }}
           </NuxtLink>
         </nav>
-        <div class="flex items-center gap-3">
+        <div class="flex shrink-0 items-center gap-2.5 xl:gap-3">
         <NuxtLink to="/tour"
-          class="hidden rounded-full border border-bronze-500/60 px-6 py-2.5 text-[12px] font-semibold uppercase tracking-[0.14em] text-bronze-300 transition hover:bg-bronze-500 hover:text-ink-900 lg:block">
+          class="hidden whitespace-nowrap rounded-full border border-bronze-500/60 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-bronze-300 transition hover:bg-bronze-500 hover:text-ink-900 sm:block xl:px-6 xl:text-[12px]">
           Agendar tour
         </NuxtLink>
         <NuxtLink to="/espacios"
-          class="hidden rounded-full bg-cream-50 px-6 py-2.5 text-[12px] font-semibold uppercase tracking-[0.14em] text-ink-900 transition hover:bg-bronze-400 sm:block">
+          class="hidden whitespace-nowrap rounded-full bg-cream-50 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-900 transition hover:bg-bronze-400 sm:block xl:px-6 xl:text-[12px]">
           Reservar ahora
         </NuxtLink>
         <button class="grid h-10 w-10 place-items-center lg:hidden" aria-label="Menú" @click="open = !open">

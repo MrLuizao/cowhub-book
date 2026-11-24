@@ -31,7 +31,7 @@ const nearby = [
   <div>
     <PageHero eyebrow="Ubicación" image="https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1600&q=80"
       description="Plaza del Parque, Paseo San Isidro 111. A minutos del centro histórico, con acceso directo al boulevard Toluca–Metepec.">
-      En el corazón de Metepec,<br /><em class="italic text-bronze-300">a pasos de todo.</em>
+      En el corazón de Metepec,<br /><em class="italic text-bronze-300">pueblo mágico.</em>
     </PageHero>
 
     <!-- Info editorial -->
@@ -40,7 +40,7 @@ const nearby = [
         <div class="reveal lg:col-span-5">
           <p class="text-[11px] font-semibold uppercase tracking-[0.3em] text-bronze-400">Encuéntranos</p>
           <h2 v-reveal-lines class="mt-4 font-display text-4xl font-semibold leading-[1.1] text-cream-50 lg:text-5xl">
-            Un espacio pensado<br />para recibirte bien.
+            Ubicación estratégica<br />para tu equipo y tus clientes.
           </h2>
           <p class="mt-6 max-w-md text-sm leading-relaxed text-cream-50/60">
             Estamos dentro de Plaza del Parque, sobre Paseo San Isidro. Si vienes de Toluca,

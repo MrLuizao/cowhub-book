@@ -7,21 +7,21 @@ const memberships = [
   {
     name: 'Hot Desk',
     price: 3200,
-    tagline: 'Para freelancers y nómadas',
+    tagline: 'Para consultores y trabajo móvil',
     features: ['Escritorio flexible por día', 'Café ilimitado', 'WiFi premium', 'Comunidad y eventos'],
     highlight: false,
   },
   {
     name: 'Coworking',
     price: 6500,
-    tagline: 'El favorito de profesionales',
+    tagline: 'Ideal para profesionales independientes',
     features: ['Escritorio dedicado', '2h de sala de juntas/mes', 'Lockers y almacenamiento', 'Invitados 2x mes', 'Perks de la plaza'],
     highlight: true,
   },
   {
     name: 'Oficina',
     price: 18000,
-    tagline: 'Para equipos de 3–8 personas',
+    tagline: 'Privacidad para equipos de 3 a 8 personas',
     features: ['Oficina privada equipada', '8h de sala/mes', 'Dirección fiscal', 'Recepción personalizada', 'Acceso 24/7'],
     highlight: false,
   },
@@ -31,8 +31,8 @@ const memberships = [
 <template>
   <div>
     <PageHero eyebrow="Membresías" image="https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=1600&q=80"
-      description="Planes mensuales con café de barra, WiFi dedicado y comunidad incluida. Sin contratos anuales forzosos — empieza hoy, hazte a tu espacio.">
-      Desde un día de hot desk<br />hasta tu oficina privada.
+      description="Planes mensuales con café de barra, internet dedicado y acceso a comunidad. Sin plazos forzosos: empieza hoy y escala cuando tu equipo crezca.">
+      Desde un escritorio flexible<br />hasta tu oficina privada.
     </PageHero>
 
     <div class="mx-auto max-w-7xl px-5 pb-24 lg:px-8">
