@@ -78,7 +78,6 @@ const onSearch = (p: { date: string; category: string; guests: number }) => {
 const worldEl = ref<HTMLElement | null>(null)
 const stageEl = ref<HTMLElement | null>(null)
 const stopEls = ref<HTMLElement[]>([])
-const hintEl = ref<HTMLElement | null>(null)
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
 const piecewise = (y: number, keys: { y: number; v: number }[]) => {
@@ -253,7 +252,6 @@ const render = () => {
   const at = Math.min(w, last)
 
   setCurrent(Math.min(Math.round(at), last))
-  if (hintEl.value) hintEl.value.style.opacity = String(clamp01(1 - w * 4))
 
   stageEl.value.querySelectorAll<HTMLElement>('[data-frame]').forEach((frame, i) => {
     frame.style.opacity = String(i === 0 ? 1 : clamp01((w - i + 0.5) / 0.5))
@@ -410,14 +408,6 @@ onBeforeUnmount(() => {
         class="absolute inset-0 bg-gradient-to-t from-ink-900/95 from-10% via-ink-900/35 via-42% to-transparent to-72% lg:bg-gradient-to-r lg:from-ink-900/90 lg:via-ink-900/40 lg:via-35% lg:to-transparent lg:to-65%" />
       <div aria-hidden="true"
         class="absolute inset-x-0 bottom-0 hidden h-1/2 bg-gradient-to-t from-ink-900/80 to-transparent lg:block" />
-
-      <p ref="hintEl" aria-hidden="true"
-        class="absolute bottom-4 right-5 flex items-center gap-2.5 text-[10px] tracking-[0.25em] text-cream-50/75 uppercase lg:bottom-8 lg:right-8 lg:gap-3 lg:text-[11px]">
-        Desliza para recorrer
-        <span class="hint-line relative block h-5 w-px overflow-hidden bg-cream-50/20 lg:h-8">
-          <span class="absolute inset-x-0 top-0 h-1/2 animate-[hint_1.6s_ease-in-out_infinite] bg-bronze-400" />
-        </span>
-      </p>
     </div>
 
     <!-- Paradas: cada una deja su texto abajo a la izquierda mientras el video avanza. -->
@@ -429,10 +419,7 @@ onBeforeUnmount(() => {
           class="stop-body pointer-events-auto sticky bottom-0 flex w-full max-w-2xl flex-col items-start px-4 pb-12 pt-32 md:px-12 lg:pb-16 xl:px-20"
           :class="i === n - 1 ? 'lg:max-w-5xl' : 'lg:max-w-3xl'">
           <template v-if="i === n - 1">
-            <p class="flex items-center gap-2 text-[11px] tracking-[0.25em] text-cream-50/60 uppercase">
-              <span class="tabular-nums">{{ String(i + 1).padStart(2, '0') }} / {{ String(n).padStart(2, '0') }}</span>
-            </p>
-            <h3 class="mt-4 max-w-3xl font-display text-4xl font-semibold leading-tight text-cream-50 lg:text-6xl">
+            <h3 class="max-w-3xl font-display text-4xl font-semibold leading-tight text-cream-50 lg:text-6xl">
               Oficinas, cabinas y <br />
               <em class="font-normal italic text-bronze-300">las mejores amenidades</em><br />
               en el corazón de Metepec.
@@ -445,10 +432,7 @@ onBeforeUnmount(() => {
             </div> -->
           </template>
           <template v-else>
-            <p class="flex items-center gap-2 text-[11px] tracking-[0.25em] text-cream-50/60 uppercase">
-              <span class="tabular-nums">{{ String(i + 1).padStart(2, '0') }} / {{ String(n).padStart(2, '0') }}</span>
-            </p>
-            <h3 class="mt-4 font-display text-4xl font-semibold leading-tight text-cream-50 lg:text-6xl">
+            <h3 class="font-display text-4xl font-semibold leading-tight text-cream-50 lg:text-6xl">
               {{ p.title }}
             </h3>
             <p class="mt-4 max-w-md text-[15px] leading-relaxed text-cream-50/75 lg:text-base">
