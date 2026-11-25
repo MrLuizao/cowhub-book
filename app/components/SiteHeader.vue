@@ -2,6 +2,7 @@
 const route = useRoute()
 const open = ref(false)
 const scrolled = ref(false)
+const journeyFinished = useState<boolean>('journey-finished', () => true)
 
 onMounted(() => {
   const onScroll = () => (scrolled.value = window.scrollY > 24)
@@ -22,7 +23,13 @@ const links = [
 
 <template>
   <header class="fixed inset-x-0 top-0 z-50 transition-all duration-500"
-    :class="scrolled || open ? 'bg-ink-900/85 backdrop-blur-md border-b border-cream-50/10' : 'bg-transparent'">
+    :class="
+      scrolled || open
+        ? journeyFinished
+          ? 'bg-ink-900/85 backdrop-blur-md border-b border-cream-50/10'
+          : 'bg-ink-900/95 border-b border-cream-50/10'
+        : 'bg-transparent'
+    ">
     <div class="mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-5 lg:gap-6 lg:px-8">
       <NuxtLink to="/" aria-label="COW-HUB Inicio" class="flex shrink-0 items-center">
         <BrandLogo size="md" />

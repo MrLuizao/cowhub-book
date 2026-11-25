@@ -78,6 +78,8 @@ const onSearch = (p: { date: string; category: string; guests: number }) => {
 const worldEl = ref<HTMLElement | null>(null)
 const stageEl = ref<HTMLElement | null>(null)
 const stopEls = ref<HTMLElement[]>([])
+const journeyFinished = useState<boolean>('journey-finished', () => true)
+journeyFinished.value = false
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
 const piecewise = (y: number, keys: { y: number; v: number }[]) => {
@@ -248,6 +250,7 @@ const onFirstInteraction = () => {
 const render = () => {
   if (!worldEl.value || !stageEl.value) return
   const sy = window.scrollY
+  journeyFinished.value = endY > 0 && sy >= endY - 24
   w = piecewise(sy, [...marks.map((y, i) => ({ y, v: i })), { y: endY, v: n }])
   const at = Math.min(w, last)
 
@@ -291,8 +294,11 @@ const onResize = () => {
 
 let raf = 0
 const onScroll = () => {
-  cancelAnimationFrame(raf)
-  raf = requestAnimationFrame(render)
+  if (raf) return
+  raf = requestAnimationFrame(() => {
+    raf = 0
+    render()
+  })
 }
 
 // Desktop: precarga los clips de uno en uno en memoria, priorizando el más cercano al scroll actual.
@@ -374,6 +380,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  journeyFinished.value = true
   window.removeEventListener('scroll', onScroll)
   window.removeEventListener('resize', onResize)
   window.removeEventListener('orientationchange', measure)
@@ -446,7 +453,12 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+.clip {
+  visibility: hidden;
+}
+
 .clip.is-shown {
+  visibility: visible;
   opacity: 1;
 }
 
