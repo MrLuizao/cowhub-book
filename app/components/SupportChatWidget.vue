@@ -8,7 +8,8 @@ interface StoredSession {
 }
 
 const STORAGE_KEY = 'cowhub_support_chat_v1'
-const POLL_OPEN_MS = 3000
+const POLL_OPEN_MS = 2500
+const POLL_TYPING_MS = 1800
 const POLL_MINIMIZED_MS = 10000
 
 const api = usePublicApi()
@@ -20,6 +21,7 @@ const session = ref<StoredSession | null>(null)
 const messages = ref<SupportChatMessage[]>([])
 const resolvedByStaff = ref(false)
 const hasUnreadStaff = ref(false)
+const isTyping = ref(false)
 
 /// Formulario inicial (visitante sin sesión activa)
 const form = reactive({
@@ -42,7 +44,46 @@ const sendError = ref('')
 const messagesEl = ref<HTMLElement | null>(null)
 
 let pollTimer: ReturnType<typeof setTimeout> | null = null
+let typingStartTimer: ReturnType<typeof setTimeout> | null = null
+let typingTimeoutTimer: ReturnType<typeof setTimeout> | null = null
+let revealTimer: ReturnType<typeof setTimeout> | null = null
 let lastStaffCount = 0
+let lastUserSentAt = 0
+let awaitingReply = false
+
+function clearTypingTimers() {
+  if (typingStartTimer) {
+    clearTimeout(typingStartTimer)
+    typingStartTimer = null
+  }
+  if (typingTimeoutTimer) {
+    clearTimeout(typingTimeoutTimer)
+    typingTimeoutTimer = null
+  }
+  if (revealTimer) {
+    clearTimeout(revealTimer)
+    revealTimer = null
+  }
+}
+
+/// Muestra una pausa natural de lectura (~550ms) y luego "Recepción está escribiendo..."
+/// para que la conversación se sienta humana y no instantánea.
+function beginTypingSequence() {
+  clearTypingTimers()
+  lastUserSentAt = Date.now()
+  awaitingReply = true
+  typingStartTimer = setTimeout(() => {
+    if (awaitingReply) {
+      isTyping.value = true
+      scrollToBottom()
+    }
+  }, 550)
+  // Si ningún agente/piloto responde en 16s, ocultar el indicador limpiamente
+  typingTimeoutTimer = setTimeout(() => {
+    awaitingReply = false
+    isTyping.value = false
+  }, 16000)
+}
 
 function saveSession(s: StoredSession | null) {
   session.value = s
@@ -96,7 +137,11 @@ function scheduleNextPoll() {
   stopPolling()
   if (!session.value || resolvedByStaff.value || !import.meta.client) return
   if (document.hidden) return
-  const delay = open.value ? POLL_OPEN_MS : POLL_MINIMIZED_MS
+  const delay = !open.value
+    ? POLL_MINIMIZED_MS
+    : awaitingReply
+      ? POLL_TYPING_MS
+      : POLL_OPEN_MS
   pollTimer = setTimeout(() => {
     void fetchMessages()
   }, delay)
@@ -111,16 +156,56 @@ async function fetchMessages() {
 
   if (res) {
     if (res.status === 'resolved') {
+      clearTypingTimers()
+      awaitingReply = false
+      isTyping.value = false
       resolvedByStaff.value = true
       stopPolling()
       return
     }
     const prevLen = messages.value.length
-    const staffCount = res.messages.filter((m) => m.sender === 'staff').length
-    if (!open.value && staffCount > lastStaffCount) {
+    const businessMsgs = res.messages.filter((m) => m.sender !== 'member')
+    const businessCount = businessMsgs.length
+    const hasNewBusinessReply = businessCount > lastStaffCount
+
+    if (!open.value && hasNewBusinessReply) {
       hasUnreadStaff.value = true
     }
-    lastStaffCount = staffCount
+
+    if (hasNewBusinessReply && awaitingReply && open.value) {
+      // Simular tiempo natural de escritura proporcional al largo del mensaje (1.5s a 2.8s)
+      const latestReply = businessMsgs[businessMsgs.length - 1]
+      const targetDelay = Math.min(2800, Math.max(1500, 1100 + (latestReply?.text.length ?? 40) * 10))
+      const elapsed = Date.now() - lastUserSentAt
+      const remaining = Math.max(0, targetDelay - elapsed)
+
+      if (remaining > 150) {
+        isTyping.value = true
+        scrollToBottom()
+        if (revealTimer) clearTimeout(revealTimer)
+        const nextMessages = res.messages
+        revealTimer = setTimeout(() => {
+          clearTypingTimers()
+          awaitingReply = false
+          isTyping.value = false
+          lastStaffCount = businessCount
+          messages.value = nextMessages
+          scrollToBottom()
+          scheduleNextPoll()
+        }, remaining)
+        return
+      }
+
+      clearTypingTimers()
+      awaitingReply = false
+      isTyping.value = false
+    } else if (hasNewBusinessReply) {
+      clearTypingTimers()
+      awaitingReply = false
+      isTyping.value = false
+    }
+
+    lastStaffCount = businessCount
     messages.value = res.messages
     if (res.messages.length > prevLen && open.value) {
       scrollToBottom()
@@ -184,6 +269,7 @@ async function handleStartChat() {
     })
     messages.value = [res.message]
     form.message = ''
+    beginTypingSequence()
     scrollToBottom()
     scheduleNextPoll()
   } finally {
@@ -217,7 +303,9 @@ async function handleSendMessage() {
 
     messages.value = [...messages.value, res]
     draft.value = ''
+    beginTypingSequence()
     scrollToBottom()
+    scheduleNextPoll()
   } finally {
     sending.value = false
   }
@@ -225,6 +313,9 @@ async function handleSendMessage() {
 
 function resetConversation() {
   stopPolling()
+  clearTypingTimers()
+  awaitingReply = false
+  isTyping.value = false
   saveSession(null)
   messages.value = []
   resolvedByStaff.value = false
@@ -262,6 +353,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   stopPolling()
+  clearTypingTimers()
   if (import.meta.client) {
     document.removeEventListener('visibilitychange', onVisibilityChange)
   }
@@ -384,13 +476,13 @@ onBeforeUnmount(() => {
               cuanto recepción vea tu mensaje.
             </div>
 
-            <div v-for="msg in messages" :key="msg.id" class="flex"
+            <div v-for="msg in messages" :key="msg.id" class="msg-pop flex"
               :class="msg.sender === 'member' ? 'justify-end' : 'justify-start'">
               <div class="max-w-[82%] rounded-2xl px-3.5 py-2.5" :class="msg.sender === 'member'
                 ? 'bg-bronze-500 text-ink-900'
                 : 'border border-cream-50/10 bg-ink-900 text-cream-50'
                 ">
-                <p v-if="msg.sender === 'staff'"
+                <p v-if="msg.sender !== 'member'"
                   class="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-bronze-300">
                   Recepción
                 </p>
@@ -401,6 +493,23 @@ onBeforeUnmount(() => {
                   :class="msg.sender === 'member' ? 'text-ink-900/65' : 'text-cream-50/45'">
                   {{ formatTime(msg.createdAt) }}
                 </p>
+              </div>
+            </div>
+
+            <!-- Indicador natural "escribiendo..." -->
+            <div v-if="isTyping && !resolvedByStaff" class="msg-pop flex justify-start">
+              <div class="rounded-2xl border border-cream-50/10 bg-ink-900 px-4 py-3 text-cream-50">
+                <p class="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-bronze-300">
+                  Recepción
+                </p>
+                <div class="flex items-center gap-2">
+                  <span class="flex items-center gap-1" aria-hidden="true">
+                    <span class="typing-dot h-1.5 w-1.5 rounded-full bg-bronze-300" />
+                    <span class="typing-dot h-1.5 w-1.5 rounded-full bg-bronze-300 [animation-delay:160ms]" />
+                    <span class="typing-dot h-1.5 w-1.5 rounded-full bg-bronze-300 [animation-delay:320ms]" />
+                  </span>
+                  <span class="text-[11px] text-cream-50/55">escribiendo...</span>
+                </div>
               </div>
             </div>
 
@@ -471,5 +580,35 @@ onBeforeUnmount(() => {
 .chat-launcher-leave-to {
   opacity: 0;
   transform: translateY(10px) scale(0.98);
+}
+
+@keyframes msg-pop {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.msg-pop {
+  animation: msg-pop 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes typing-pulse {
+  0%, 80%, 100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+.typing-dot {
+  animation: typing-pulse 1.1s ease-in-out infinite;
 }
 </style>

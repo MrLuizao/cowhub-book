@@ -30,7 +30,7 @@ interface TourResponse {
 export interface SupportChatMessage {
   id: string
   conversationId: string
-  sender: 'member' | 'staff'
+  sender: 'member' | 'staff' | 'ai'
   senderName: string
   text: string
   createdAt: number
