@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { spaces } from '~/data/spaces'
+const api = usePublicApi()
+const { data: spacesData } = await useAsyncData('public-spaces', () => api.listSpaces())
+const spaces = computed(() => spacesData.value ?? [])
 
 const tabs = [
   { id: 'todos', label: 'Todos' },
@@ -10,7 +12,7 @@ const tabs = [
 ]
 const active = ref('todos')
 const filtered = computed(() =>
-  active.value === 'todos' ? spaces : spaces.filter((s) => s.category === active.value),
+  active.value === 'todos' ? spaces.value : spaces.value.filter((s) => s.category === active.value),
 )
 const mxn = (n: number) => '$' + n.toLocaleString('es-MX')
 </script>

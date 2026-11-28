@@ -1,13 +1,15 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
-import tailwindcss from '@tailwindcss/vite'
-
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: process.env.NODE_ENV !== 'production' },
-  css: ['~/assets/css/main.css'],
-  vite: {
-    plugins: [tailwindcss()],
+  modules: ['@nuxt/ui'],
+  ui: {
+    colorMode: false,
+    theme: {
+      colors: ['primary', 'secondary', 'bronze', 'terra', 'sage', 'info', 'success', 'warning', 'error'],
+    },
   },
+  css: ['~/assets/css/main.css'],
   runtimeConfig: {
     public: {
       /// API pública del B2B (cowhub-b2b).
@@ -21,6 +23,7 @@ export default defineNuxtConfig({
   app: {
     head: {
       title: 'COW-HUB',
+      htmlAttrs: { lang: 'es', class: 'dark' },
       meta: [
         { name: 'description', content: 'Business Center en Metepec: oficinas privadas, salas de juntas, auditorio y escritorios flexibles listos para operar.' },
       ],

@@ -1,10 +1,30 @@
 <script setup lang="ts">
-import { spaces, categoryLabels } from '~/data/spaces'
+import { parseDate, type DateValue } from '@internationalized/date'
+import { categoryLabels } from '~/data/spaces'
+
+const api = usePublicApi()
+const { data: spacesData } = await useAsyncData('public-spaces', () => api.listSpaces())
+const liveSpaces = computed(() => spacesData.value ?? [])
 
 const emit = defineEmits<{ search: [payload: { date: string; category: string; guests: number }] }>()
 
 const today = new Date().toISOString().slice(0, 10)
 const date = ref(today)
+const datePopoverOpen = ref(false)
+const minCalendarDate = parseDate(today)
+const calendarValue = computed({
+  get: () => parseDate(date.value),
+  set: (val: DateValue | undefined) => {
+    if (val) {
+      date.value = val.toString()
+      datePopoverOpen.value = false
+    }
+  },
+})
+const formattedDate = computed(() => {
+  const [y, m, d] = date.value.split('-')
+  return `${d}/${m}/${y}`
+})
 const category = ref('todos')
 const guests = ref(2)
 
@@ -23,29 +43,42 @@ function submit() {
     class="widget-shell grid grid-cols-1 gap-px overflow-hidden rounded-2xl sm:grid-cols-2 lg:grid-cols-[1.2fr_1fr_0.8fr_auto]"
     @submit.prevent="submit"
   >
-    <label class="bg-white px-5 py-4">
+    <div class="bg-white px-5 py-4">
       <span class="block text-[10px] font-semibold uppercase tracking-[0.22em] text-ink-400">Fecha</span>
-      <input
-        v-model="date"
-        type="date"
-        :min="today"
-        class="mt-1 w-full bg-transparent text-[15px] font-medium text-ink-900"
-      />
-    </label>
+      <UPopover v-model:open="datePopoverOpen">
+        <button
+          type="button"
+          class="mt-1 flex h-8 w-full items-center justify-between text-left text-[15px] font-medium text-ink-900"
+        >
+          <span>{{ formattedDate }}</span>
+          <UIcon name="i-lucide-calendar" class="h-4 w-4 text-ink-500" />
+        </button>
+        <template #content>
+          <UCalendar v-model="calendarValue" :min-value="minCalendarDate" class="p-2" />
+        </template>
+      </UPopover>
+    </div>
     <label class="bg-white px-5 py-4">
       <span class="block text-[10px] font-semibold uppercase tracking-[0.22em] text-ink-400">Tipo de espacio</span>
-      <select v-model="category" class="mt-1 w-full appearance-none bg-transparent text-[15px] font-medium text-ink-900">
-        <option v-for="c in categories" :key="c.value" :value="c.value">{{ c.label }}</option>
-      </select>
+      <USelect
+        v-model="category"
+        :items="categories"
+        variant="none"
+        :ui="{ base: 'mt-1 h-8 w-full px-0 py-0 text-[15px] font-medium text-ink-900 shadow-none', trailingIcon: 'text-ink-500' }"
+      />
     </label>
-    <label class="bg-white px-5 py-4">
+    <div class="bg-white px-5 py-4">
       <span class="block text-[10px] font-semibold uppercase tracking-[0.22em] text-ink-400">Personas</span>
-      <div class="mt-1 flex items-center gap-3">
-        <button type="button" class="grid h-7 w-7 place-items-center rounded-full border border-ink-900/15 text-ink-700" @click="guests = Math.max(1, guests - 1)">−</button>
-        <span class="w-6 text-center text-[15px] font-semibold">{{ guests }}</span>
-        <button type="button" class="grid h-7 w-7 place-items-center rounded-full border border-ink-900/15 text-ink-700" @click="guests = Math.min(60, guests + 1)">+</button>
-      </div>
-    </label>
+      <UInputNumber
+        v-model="guests"
+        :min="1"
+        :max="60"
+        variant="none"
+        size="sm"
+        class="mt-1 w-full"
+        :ui="{ base: 'h-8 bg-transparent px-0 py-0 text-[15px] font-semibold text-ink-900 shadow-none', increment: 'text-ink-700', decrement: 'text-ink-700' }"
+      />
+    </div>
     <button
       type="submit"
       class="flex items-center justify-center gap-2 bg-ink-900 px-8 py-4 text-[12px] font-semibold uppercase tracking-[0.18em] text-cream-50 transition hover:bg-bronze-600"
@@ -55,6 +88,6 @@ function submit() {
     </button>
   </form>
   <p class="mt-3 text-[11px] uppercase tracking-[0.18em] text-cream-100/50">
-    {{ spaces.length }} espacios disponibles · Metepec, Estado de México
+    {{ liveSpaces.length }} espacios disponibles · Metepec, Estado de México
   </p>
 </template>

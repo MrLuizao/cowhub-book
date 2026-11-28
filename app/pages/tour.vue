@@ -1,6 +1,16 @@
 <script setup lang="ts">
 useHead({ title: 'Agendar tour · COW-HUB' })
 
+const INTEREST_OPTIONS = [
+  'Hot Desk (Escritorio flexible)',
+  'Membresía Coworking (Escritorio dedicado)',
+  'Oficina privada (Equipos)',
+  'Salas de juntas',
+  'Eventos (Auditorio / Terraza)',
+  'Cabinas Focus',
+  'Recorrido general',
+] as const
+
 const form = reactive({
   name: '',
   company: '',
@@ -8,7 +18,7 @@ const form = reactive({
   phone: '',
   date: '',
   guests: 2,
-  message: '',
+  interest: '',
   privacy: false,
 })
 
@@ -17,6 +27,7 @@ const folio = ref('')
 const submitting = ref(false)
 const submitError = ref('')
 const errors = reactive<Record<string, string>>({})
+const calendarRef = ref<{ refresh: () => Promise<void> } | null>(null)
 
 function validate() {
   errors.name = form.name.trim() ? '' : 'Nombre requerido'
@@ -40,15 +51,16 @@ async function submit() {
       phone: form.phone,
       preferred_date: form.date || undefined,
       people: form.guests,
-      message: form.message || undefined,
+      interest: form.interest || undefined,
       privacy_accepted: form.privacy,
     })
-    if (res?.tour?.folio) {
+    if (res && 'tour' in res && res.tour?.folio) {
       folio.value = res.tour.folio
       submitted.value = true
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } else {
-      submitError.value = 'No se pudo conectar con el servidor para registrar el tour'
+      submitError.value = res && 'error' in res ? res.error : 'No se pudo conectar con el servidor para registrar el tour'
+      await calendarRef.value?.refresh()
     }
   } catch (err: unknown) {
     submitError.value = 'Error al procesar la solicitud con el servidor'
@@ -76,7 +88,8 @@ const today = new Date().toISOString().slice(0, 10)
           <p class="mt-3 text-cream-50/70">">
             {{ new Date(form.date + 'T12:00:00').toLocaleDateString('es-MX', {
               weekday: 'long', day: 'numeric', month:
-            'long' }) }}
+                'long'
+            }) }}
             · {{ form.guests }} {{ form.guests === 1 ? 'persona' : 'personas' }}
           </p>
           <p
@@ -179,35 +192,44 @@ const today = new Date().toISOString().slice(0, 10)
                 :class="errors.phone ? 'border-terra-500' : 'border-cream-50/15'" />
               <p v-if="errors.phone" class="mt-1 text-[11px] text-terra-400">{{ errors.phone }}</p>
             </div>
+
             <div>
-              <label class="block text-[10px] font-semibold uppercase tracking-[0.22em] text-cream-50/50">Fecha
-                preferida *</label>
-              <input v-model="form.date" type="date" :min="today"
-                class="mt-1.5 w-full rounded-xl border bg-ink-900 px-4 py-3.5 text-[14px] text-cream-50"
-                :class="errors.date ? 'border-terra-500' : 'border-cream-50/15'" />
-              <p v-if="errors.date" class="mt-1 text-[11px] text-terra-400">{{ errors.date }}</p>
+              <label for="tour-interest"
+                class="block text-[10px] font-semibold uppercase tracking-[0.22em] text-cream-50/50">¿Qué te
+                interesa?</label>
+              <USelect
+                id="tour-interest"
+                v-model="form.interest"
+                :items="[...INTEREST_OPTIONS]"
+                placeholder="Selecciona una opción…"
+                size="xl"
+                class="mt-1.5 w-full"
+                :ui="{ base: 'h-12 rounded-xl border border-cream-50/15 bg-ink-900 px-4 text-[14px] text-cream-50 ring-0 shadow-none' }"
+              />
             </div>
+
             <div>
               <label
                 class="block text-[10px] font-semibold uppercase tracking-[0.22em] text-cream-50/50">Personas</label>
-              <div
-                class="mt-1.5 flex items-center justify-between rounded-xl border border-cream-50/15 bg-ink-900 px-4 py-2.5">
-                <button type="button"
-                  class="grid h-7 w-7 place-items-center rounded-full border border-cream-50/20 text-cream-50"
-                  @click="form.guests = Math.max(1, form.guests - 1)">−</button>
-                <span class="text-[14px] font-semibold text-cream-50">{{ form.guests }}</span>
-                <button type="button"
-                  class="grid h-7 w-7 place-items-center rounded-full border border-cream-50/20 text-cream-50"
-                  @click="form.guests = Math.min(10, form.guests + 1)">+</button>
-              </div>
+              <UInputNumber
+                v-model="form.guests"
+                :min="1"
+                :max="10"
+                size="xl"
+                class="mt-1.5 w-full"
+                :ui="{ base: 'h-12 rounded-xl border border-cream-50/15 bg-ink-900 text-[14px] font-semibold text-cream-50 ring-0 shadow-none' }"
+              />
             </div>
-          </div>
 
-          <div class="mt-5">
-            <label class="block text-[10px] font-semibold uppercase tracking-[0.22em] text-cream-50/50">¿Qué te
-              interesa?</label>
-            <textarea v-model="form.message" rows="3" placeholder="Coworking, oficina privada, sala de juntas, evento…"
-              class="mt-1.5 w-full resize-none rounded-xl border border-cream-50/15 bg-ink-900 px-4 py-3.5 text-[14px] text-cream-50 placeholder:text-cream-50/30"></textarea>
+            <div class="sm:col-span-2">
+              <label class="block text-[10px] font-semibold uppercase tracking-[0.22em] text-cream-50/50">Fecha
+                preferida *</label>
+              <div class="mt-1.5">
+                <TourCalendar ref="calendarRef" v-model="form.date" :min-date="today" :has-error="Boolean(errors.date)" />
+              </div>
+              <p v-if="errors.date" class="mt-1 text-[11px] text-terra-400">{{ errors.date }}</p>
+            </div>
+
           </div>
 
           <label class="mt-5 flex items-start gap-3">
@@ -221,8 +243,7 @@ const today = new Date().toISOString().slice(0, 10)
           <p v-if="submitError" class="mt-4 text-center text-[12px] font-medium text-red-400">
             {{ submitError }}
           </p>
-          <button type="submit"
-            :disabled="submitting"
+          <button type="submit" :disabled="submitting"
             class="mt-7 w-full rounded-full bg-bronze-500 py-4 text-[12px] font-semibold uppercase tracking-[0.18em] text-ink-900 transition hover:bg-bronze-400 disabled:cursor-not-allowed disabled:opacity-50">
             {{ submitting ? 'Agendando…' : 'Agendar mi tour' }}
           </button>

@@ -1,4 +1,4 @@
-import type { CoworkSpace } from '~/data/spaces'
+import { spaces as fallbackSpaces, type CoworkSpace } from '~/data/spaces'
 
 interface BookedSlot {
   mode: string
@@ -25,6 +25,24 @@ interface BookingResponse {
 
 interface TourResponse {
   tour: { folio: string }
+}
+
+export interface SpaceMonthAvailabilityResponse {
+  month: string
+  totalHours: number
+  days: Record<string, { full: boolean; bookedHours: number }>
+}
+
+export interface TourAvailabilityResponse {
+  month: string
+  today: string
+  maxPerDay: {
+    weekday: number
+    saturday: number
+    sunday: number
+  }
+  counts: Record<string, number>
+  fullDates: string[]
 }
 
 export interface SupportChatMessage {
@@ -54,9 +72,23 @@ export function usePublicApi() {
   const config = useRuntimeConfig()
   const base = ((config.public.apiBase as string) || '').replace(/\/+$/, '')
 
-  async function listSpaces(): Promise<CoworkSpace[] | null> {
+  async function listSpaces(): Promise<CoworkSpace[]> {
     try {
-      return await $fetch<CoworkSpace[]>(`${base}/api/public/spaces`)
+      const remote = await $fetch<CoworkSpace[]>(`${base}/api/public/spaces`)
+      return Array.isArray(remote) && remote.length > 0 ? remote : fallbackSpaces
+    } catch {
+      return fallbackSpaces
+    }
+  }
+
+  async function spaceMonthAvailability(
+    id: string,
+    month: string,
+  ): Promise<SpaceMonthAvailabilityResponse | null> {
+    try {
+      return await $fetch<SpaceMonthAvailabilityResponse>(
+        `${base}/api/public/spaces/${encodeURIComponent(id)}/availability?month=${encodeURIComponent(month)}`,
+      )
     } catch {
       return null
     }
@@ -93,6 +125,17 @@ export function usePublicApi() {
         method: 'POST',
         body: payload,
       })
+    } catch (e: unknown) {
+      const err = e as { data?: { statusMessage?: string }; statusMessage?: string }
+      return { error: err?.data?.statusMessage ?? err?.statusMessage ?? 'No se pudo registrar el tour' }
+    }
+  }
+
+  async function tourAvailability(month: string): Promise<TourAvailabilityResponse | null> {
+    try {
+      return await $fetch<TourAvailabilityResponse>(
+        `${base}/api/public/tours/availability?month=${encodeURIComponent(month)}`,
+      )
     } catch {
       return null
     }
@@ -158,8 +201,10 @@ export function usePublicApi() {
   return {
     listSpaces,
     spaceDetail,
+    spaceMonthAvailability,
     createBooking,
     createTour,
+    tourAvailability,
     startSupportChat,
     getSupportMessages,
     sendSupportMessage,

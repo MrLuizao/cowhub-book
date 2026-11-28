@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { parseDate, type DateValue } from '@internationalized/date'
 import { categoryLabels } from '~/data/spaces'
 
 const route = useRoute()
@@ -18,6 +19,59 @@ const mxn = (n: number) => '$' + n.toLocaleString('es-MX')
 // --- Reserva ---
 const today = new Date().toISOString().slice(0, 10)
 const date = ref(today)
+const datePopoverOpen = ref(false)
+const minCalendarDate = parseDate(today)
+const calendarPlaceholder = ref<DateValue>(parseDate(today))
+const monthAvailability = ref<Record<string, { full: boolean; bookedHours: number }>>({})
+const monthCache = new Map<string, Record<string, { full: boolean; bookedHours: number }>>()
+
+const calendarValue = computed({
+  get: () => parseDate(date.value),
+  set: (val: DateValue | undefined) => {
+    if (val) {
+      date.value = val.toString()
+      datePopoverOpen.value = false
+    }
+  },
+})
+const formattedDate = computed(() => {
+  const [y, m, d] = date.value.split('-')
+  return `${d}/${m}/${y}`
+})
+
+async function loadMonthAvailability(monthKey: string) {
+  const cached = monthCache.get(monthKey)
+  if (cached) {
+    monthAvailability.value = cached
+    return
+  }
+  const res = await api.spaceMonthAvailability(String(route.params.id), monthKey)
+  if (res) {
+    monthCache.set(monthKey, res.days)
+    monthAvailability.value = res.days
+  }
+}
+
+watch(
+  calendarPlaceholder,
+  (val) => {
+    const monthKey = `${val.year}-${String(val.month).padStart(2, '0')}`
+    loadMonthAvailability(monthKey)
+  },
+  { immediate: true },
+)
+
+function dayStatus(d: DateValue): 'full' | 'partial' | 'free' {
+  const info = monthAvailability.value[d.toString()]
+  if (!info) return 'free'
+  if (info.full) return 'full'
+  if (info.bookedHours > 0) return 'partial'
+  return 'free'
+}
+
+function isDateDisabled(d: DateValue): boolean {
+  return dayStatus(d) === 'full'
+}
 const startHour = ref(9)
 const duration = ref(2) // horas
 const guests = ref(2)
@@ -43,6 +97,10 @@ async function loadAvailability(d: string) {
   if (res) {
     bookedSlots.value = res.booked
     apiLive.value = true
+    if (occupied(startHour.value)) {
+      const firstFree = hours.find((h) => !occupied(h))
+      if (firstFree != null) startHour.value = firstFree
+    }
   } else {
     bookedSlots.value = null
     apiLive.value = false
@@ -60,6 +118,30 @@ function occupied(h: number) {
   )
 }
 const hours = Array.from({ length: 14 }, (_, i) => i + 7) // 7:00–20:00
+
+const selectionConflict = computed(() => {
+  if (!bookedSlots.value || bookedSlots.value.length === 0) return ''
+  if (billing.value === 'dia') {
+    return 'Este día ya tiene reservas; elige modalidad por hora o selecciona otra fecha.'
+  }
+  const end = startHour.value + duration.value
+  if (end > 20) {
+    return 'El horario seleccionado excede la hora de cierre (20:00).'
+  }
+  for (let h = startHour.value; h < end; h++) {
+    if (occupied(h)) {
+      return `El rango ${startHour.value}:00–${end}:00 incluye horas ya ocupadas.`
+    }
+  }
+  return ''
+})
+const durationOptions = [
+  { label: '1 hora', value: 1 },
+  { label: '2 horas', value: 2 },
+  { label: '3 horas', value: 3 },
+  { label: '4 horas', value: 4 },
+  { label: '6 horas', value: 6 },
+]
 const endHour = computed(() => startHour.value + duration.value)
 const total = computed(() => {
   const s = space.value!
@@ -203,8 +285,47 @@ async function confirm() {
           <div class="space-y-5 p-7">
             <div>
               <label class="block text-[10px] font-semibold uppercase tracking-[0.22em] text-cream-50/50">Fecha</label>
-              <input v-model="date" type="date" :min="today"
-                class="mt-1.5 w-full rounded-xl border border-cream-50/15 bg-ink-900 px-4 py-3 text-[15px] font-medium" />
+              <UPopover v-model:open="datePopoverOpen">
+                <button
+                  type="button"
+                  class="mt-1.5 flex w-full items-center justify-between rounded-xl border border-cream-50/15 bg-ink-900 px-4 py-3 text-[15px] font-medium text-cream-50 transition hover:border-cream-50/30"
+                >
+                  <span>{{ formattedDate }}</span>
+                  <UIcon name="i-lucide-calendar" class="h-4 w-4 text-cream-50/60" />
+                </button>
+                <template #content>
+                  <div class="p-2">
+                    <UCalendar
+                      v-model="calendarValue"
+                      v-model:placeholder="calendarPlaceholder"
+                      :min-value="minCalendarDate"
+                      :is-date-disabled="isDateDisabled"
+                    >
+                      <template #day="{ day }">
+                        <div class="flex flex-col items-center leading-none">
+                          <span>{{ day.day }}</span>
+                          <span
+                            v-if="day.toString() >= today"
+                            class="mt-0.5 h-1 w-1 rounded-full"
+                            :class="
+                              dayStatus(day) === 'full'
+                                ? 'bg-terra-500/80'
+                                : dayStatus(day) === 'partial'
+                                  ? 'bg-bronze-400'
+                                  : 'bg-sage-500'
+                            "
+                          />
+                        </div>
+                      </template>
+                    </UCalendar>
+                    <div class="mt-2 flex items-center justify-center gap-3 border-t border-cream-50/10 pt-2 text-[10px] text-cream-50/60">
+                      <span class="inline-flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full bg-sage-500" /> Libre</span>
+                      <span class="inline-flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full bg-bronze-400" /> Con reservas</span>
+                      <span class="inline-flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full bg-terra-500/80" /> Sin cupo</span>
+                    </div>
+                  </div>
+                </template>
+              </UPopover>
             </div>
 
             <div>
@@ -227,27 +348,26 @@ async function confirm() {
               <div>
                 <label
                   class="block text-[10px] font-semibold uppercase tracking-[0.22em] text-cream-50/50">Duración</label>
-                <select v-model.number="duration" :disabled="billing === 'dia'"
-                  class="mt-1.5 w-full rounded-xl border border-cream-50/15 bg-ink-900 px-3 py-3 text-[14px] font-medium">
-                  <option :value="1">1 hora</option>
-                  <option :value="2">2 horas</option>
-                  <option :value="3">3 horas</option>
-                  <option :value="4">4 horas</option>
-                  <option :value="6">6 horas</option>
-                </select>
+                <USelect
+                  v-model="duration"
+                  :items="durationOptions"
+                  :disabled="billing === 'dia'"
+                  size="xl"
+                  class="mt-1.5 w-full"
+                  :ui="{ base: 'h-12 rounded-xl border border-cream-50/15 bg-ink-900 px-3 text-[14px] font-medium text-cream-50 ring-0 shadow-none' }"
+                />
               </div>
               <div>
                 <label
                   class="block text-[10px] font-semibold uppercase tracking-[0.22em] text-cream-50/50">Personas</label>
-                <div
-                  class="mt-1.5 flex items-center justify-between rounded-xl border border-cream-50/15 bg-ink-900 px-3 py-2.5">
-                  <button class="grid h-7 w-7 place-items-center rounded-full border border-cream-50/15"
-                    @click="guests = Math.max(1, guests - 1)">−</button>
-                  <span class="text-[14px] font-semibold">{{ guests }}</span>
-                  <button class="grid h-7 w-7 place-items-center rounded-full border border-cream-50/15"
-                    @click="guests = Math.min(space.capacity, guests + 1)">+</button>
-                </div>
-                <p class="mt-1 text-[10px] text-cream-50/50">Máx. {{ space.capacity }}</p>
+                <UInputNumber
+                  v-model="guests"
+                  :min="1"
+                  :max="space.capacity"
+                  size="xl"
+                  class="mt-1.5 w-full"
+                  :ui="{ base: 'h-12 rounded-xl border border-cream-50/15 bg-ink-900 text-[14px] font-semibold text-cream-50 ring-0 shadow-none' }"
+                />
               </div>
             </div>
 
@@ -280,12 +400,12 @@ async function confirm() {
               </p>
             </div>
 
-            <p v-if="bookingError" class="text-center text-[12px] font-medium text-red-400">
-              {{ bookingError }}
+            <p v-if="selectionConflict || bookingError" class="text-center text-[12px] font-medium text-terra-400">
+              {{ selectionConflict || bookingError }}
             </p>
             <button
               class="w-full rounded-full bg-ink-900 py-4 text-[12px] font-semibold uppercase tracking-[0.18em] text-cream-50 transition hover:bg-bronze-600 disabled:cursor-not-allowed disabled:opacity-40"
-              :disabled="!name.trim() || !email.includes('@') || bookingPending" @click="confirm">
+              :disabled="!name.trim() || !email.includes('@') || Boolean(selectionConflict) || bookingPending" @click="confirm">
               {{ bookingPending ? 'Reservando…' : 'Confirmar reserva' }}
             </button>
             <p class="text-center text-[11px] text-cream-50/50">Pago seguro con tarjeta · recibo por correo</p>
